@@ -1264,8 +1264,9 @@ export default function App() {
 
       {/* Onboarding Overlay Walkthrough Dialog */}
       {showOnboarding && (
-        <div className="fixed inset-0 bg-wood/75 backdrop-blur-xs z-40 pointer-events-auto transition-all duration-300">
-          <div className={`fixed left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-sand-light retro-border p-5 z-50 animate-fade-in text-wood md:top-auto md:bottom-6 ${ONBOARDING_STEPS[currentOnboardingStep].mobilePosition}`}>
+        <>
+          <div className="fixed inset-0 bg-wood/75 backdrop-blur-xs z-40 pointer-events-auto transition-all duration-300" />
+          <div className={`fixed left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-sand-light retro-border p-4 md:p-5 z-[60] animate-fade-in text-wood md:top-auto md:bottom-6 ${ONBOARDING_STEPS[currentOnboardingStep].mobilePosition}`}>
             <header className="flex justify-between items-center border-b-2 border-wood pb-2 mb-3">
               <span className="font-press-start text-[10px] font-black text-fox uppercase">
                 Обучение ({currentOnboardingStep + 1} / {ONBOARDING_STEPS.length})
@@ -1303,7 +1304,7 @@ export default function App() {
               </button>
             </footer>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
