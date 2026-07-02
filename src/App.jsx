@@ -49,6 +49,29 @@ const INITIAL_OBSERVATIONS = [
   }
 ];
 
+const ONBOARDING_STEPS = [
+  {
+    targetId: "interactive-map-section",
+    title: "Карта секторов",
+    text: "Это интерактивная карта леса. Сектора темнеют, если в них замечено больше 2 лис. Кликните по сектору для фильтрации таблицы."
+  },
+  {
+    targetId: "kpi-panel",
+    title: "Панель показателей",
+    text: "Здесь отображаются ключевые метрики смены. Если уровень реальной угрозы превысит 9, панель предупредит о необходимости патрулирования."
+  },
+  {
+    targetId: "action-panel",
+    title: "Панель управления",
+    text: "Отсюда можно сгенерировать 20 случайных событий для проверки, добавить новый контакт вручную или сбросить все данные к исходным."
+  },
+  {
+    targetId: "btn-export-report",
+    title: "Экспорт отчетов",
+    text: "Нажмите эту кнопку, чтобы выгрузить и скачать детальный текстовый отчет для Министерства Леса."
+  }
+];
+
 // Custom pixel-perfect Cyrillic Й component to bypass Press Start 2P font Cyrillic limitations
 function PixelЙ() {
   return (
@@ -88,6 +111,10 @@ export default function App() {
   const [showWorklog, setShowWorklog] = useState(false);
   const [historyLog, setHistoryLog] = useState([]); // For undo functionality
   const [toast, setToast] = useState(''); // Toast notification message
+
+  // Onboarding States
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [currentOnboardingStep, setCurrentOnboardingStep] = useState(0);
   
   // Form states
   const [newFoxId, setNewFoxId] = useState('fox_001');
@@ -101,12 +128,33 @@ export default function App() {
   const [newSuspicionLevel, setNewSuspicionLevel] = useState(5);
   const [newTime, setNewTime] = useState('');
 
+  // Check for first-time visit to show onboarding
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const completed = localStorage.getItem('fox_onboarding_completed');
+      if (!completed) {
+        setShowOnboarding(true);
+      }
+    }
+  }, []);
+
   // Synchronize observations state with localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('fox_observations', JSON.stringify(observations));
     }
   }, [observations]);
+
+  // Smooth scroll and focus on highlighted onboarding target
+  useEffect(() => {
+    if (showOnboarding) {
+      const step = ONBOARDING_STEPS[currentOnboardingStep];
+      const element = document.getElementById(step.targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [currentOnboardingStep, showOnboarding]);
 
   // Helper: Trigger Toast Notification
   const triggerToast = (msg) => {
@@ -377,6 +425,33 @@ export default function App() {
     triggerToast('Отчет сохранен в файл');
   };
 
+  // Onboarding controls
+  const handleNextOnboarding = () => {
+    if (currentOnboardingStep < ONBOARDING_STEPS.length - 1) {
+      setCurrentOnboardingStep(prev => prev + 1);
+    } else {
+      handleCompleteOnboarding();
+    }
+  };
+
+  const handlePrevOnboarding = () => {
+    if (currentOnboardingStep > 0) {
+      setCurrentOnboardingStep(prev => prev - 1);
+    }
+  };
+
+  const handleCompleteOnboarding = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fox_onboarding_completed', 'true');
+    }
+    setShowOnboarding(false);
+  };
+
+  const handleStartOnboarding = () => {
+    setCurrentOnboardingStep(0);
+    setShowOnboarding(true);
+  };
+
   // Helper for threat progress bar color
   const getThreatColor = (level) => {
     if (level > 9) return 'bg-red-600';
@@ -395,8 +470,9 @@ export default function App() {
               <span className="text-4xl animate-bounce">🦊</span>
             </div>
             <div>
+              {/* FIXED CYRILLIC Й SPLITTING: Wrapped in whitespace-nowrap span to ensure letter Й never splits from preceding text */}
               <h1 id="main-title" className="text-2xl md:text-3xl font-press-start tracking-wider text-sand-light font-black uppercase text-shadow-sm">
-                ЛИСИ<PixelЙ /> ДИСПЕТЧЕР
+                <span className="whitespace-nowrap">ЛИСИ<PixelЙ /></span> ДИСПЕТЧЕР
               </h1>
               <p className="text-sand-light/95 font-mono text-sm md:text-base mt-1 font-bold">
                 🌲 Картографический модуль // Сектор 07-Лес
@@ -408,13 +484,24 @@ export default function App() {
               <Calendar size={14} className="text-fox-light" />
               <span>02 ИЮЛЯ 2026</span>
             </div>
-            <button
-              id="btn-open-worklog"
-              onClick={() => setShowWorklog(true)}
-              className="retro-btn bg-[#ecc844] hover:bg-[#dfba35] text-wood font-press-start text-xs font-black px-4 py-2 mt-2 h-11 flex items-center gap-2 justify-center w-full transition-all duration-100 hover:scale-105 active:scale-95"
-            >
-              <BookOpen size={14} /> AI WORKLOG
-            </button>
+            {/* Added a replay Help button alongside AI Worklog */}
+            <div className="flex gap-2 mt-2 w-full">
+              <button
+                id="btn-open-worklog"
+                onClick={() => setShowWorklog(true)}
+                className="retro-btn bg-[#ecc844] hover:bg-[#dfba35] text-wood font-press-start text-xs font-black px-4 py-2 h-11 flex-1 flex items-center gap-2 justify-center transition-all duration-100 hover:scale-105 active:scale-95"
+              >
+                <BookOpen size={14} /> AI WORKLOG
+              </button>
+              <button
+                id="btn-start-onboarding"
+                onClick={handleStartOnboarding}
+                className="retro-btn bg-[#ecc844] hover:bg-[#dfba35] text-wood font-press-start text-xs font-black w-11 h-11 flex items-center justify-center transition-all duration-100 hover:scale-105 active:scale-95"
+                title="Показать обучение"
+              >
+                ?
+              </button>
+            </div>
           </div>
         </header>
 
@@ -436,7 +523,14 @@ export default function App() {
         )}
 
         {/* 2. KPI CARD PANEL */}
-        <section id="kpi-panel" className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section 
+          id="kpi-panel" 
+          className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-300 ${
+            showOnboarding && currentOnboardingStep === 1 
+              ? 'relative z-50 ring-4 ring-[#f26419] shadow-[0_0_25px_rgba(242,100,25,0.7)] bg-sand-light rounded-sm' 
+              : ''
+          }`}
+        >
           
           <article className="retro-border bg-sand-light p-5 flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-200 hover:scale-102">
             <div className="flex justify-between items-start">
@@ -489,7 +583,14 @@ export default function App() {
         </section>
 
         {/* 3. INTERACTIVE FOREST MAP */}
-        <section id="interactive-map-section" className="retro-border bg-sand-light p-5">
+        <section 
+          id="interactive-map-section" 
+          className={`retro-border bg-sand-light p-5 transition-all duration-300 ${
+            showOnboarding && currentOnboardingStep === 0 
+              ? 'relative z-50 ring-4 ring-[#f26419] shadow-[0_0_25px_rgba(242,100,25,0.7)]' 
+              : ''
+          }`}
+        >
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b-4 border-wood pb-3 mb-4">
             <div>
               <h2 className="text-lg font-press-start font-black text-wood uppercase flex items-center gap-2">
@@ -568,7 +669,14 @@ export default function App() {
         </section>
 
         {/* LOG ENCOUNTER & SIMULATOR ACTION PANEL */}
-        <section id="action-panel" className="flex flex-col sm:flex-row justify-between gap-4">
+        <section 
+          id="action-panel" 
+          className={`flex flex-col sm:flex-row justify-between gap-4 transition-all duration-300 ${
+            showOnboarding && currentOnboardingStep === 2 
+              ? 'relative z-50 ring-4 ring-[#f26419] shadow-[0_0_25px_rgba(242,100,25,0.7)] bg-sand rounded-sm p-2' 
+              : ''
+          }`}
+        >
           <div className="flex flex-col sm:flex-row gap-4">
             {/* SIMULATOR BUTTON */}
             <button
@@ -812,11 +920,12 @@ export default function App() {
         )}
 
         {/* 4. OBSERVATION LOG TABLE */}
-        <section id="observations-section" className="retro-border bg-sand-light p-4 md:p-6">
+        <section id="observations-section" className="retro-border bg-sand-light p-4 md:p-6 font-mono">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b-4 border-wood pb-4 mb-4 font-mono">
             <div>
+              {/* FIXED CYRILLIC Й WRAPPING: Wrapped in whitespace-nowrap span so that the word and the Й component never split lines */}
               <h2 className="text-lg md:text-xl font-press-start font-black text-wood uppercase">
-                📜 ЖУРНАЛ ПОЛЕВЫХ НАБЛЮДЕНИ<PixelЙ />
+                📜 ЖУРНАЛ ПОЛЕВЫХ <span className="whitespace-nowrap">НАБЛЮДЕНИ<PixelЙ /></span>
               </h2>
               <p className="text-wood/75 font-mono text-xs font-bold mt-1">
                 Строки с Реальной угрозой &gt; 9 автоматически подсвечиваются красным.
@@ -832,7 +941,11 @@ export default function App() {
               <button
                 id="btn-export-report"
                 onClick={handleExportReport}
-                className="retro-btn bg-forest hover:bg-forest-light text-sand-light font-press-start text-xs font-black min-h-[38px] px-4 py-2 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-105 active:scale-95"
+                className={`retro-btn bg-forest hover:bg-forest-light text-sand-light font-press-start text-xs font-black min-h-[38px] px-4 py-2 flex items-center justify-center gap-2 transition-all duration-100 active:scale-95 ${
+                  showOnboarding && currentOnboardingStep === 3 
+                    ? 'relative z-50 ring-4 ring-[#f26419] shadow-[0_0_25px_rgba(242,100,25,0.7)] scale-105 bg-forest-light' 
+                    : 'hover:scale-105'
+                }`}
                 title="Скачать текстовый отчет"
               >
                 <Download size={14} />
@@ -1180,6 +1293,50 @@ export default function App() {
         >
           <span>🔔</span>
           <span>{toast}</span>
+        </div>
+      )}
+
+      {/* Onboarding Overlay Walkthrough Dialog */}
+      {showOnboarding && (
+        <div className="fixed inset-0 bg-wood/75 backdrop-blur-xs z-40 pointer-events-auto transition-all duration-300">
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-sand-light retro-border p-5 z-50 animate-fade-in text-wood">
+            <header className="flex justify-between items-center border-b-2 border-wood pb-2 mb-3">
+              <span className="font-press-start text-[10px] font-black text-fox uppercase">
+                Обучение ({currentOnboardingStep + 1} / {ONBOARDING_STEPS.length})
+              </span>
+              <button 
+                onClick={handleCompleteOnboarding}
+                className="text-wood/60 hover:text-wood font-bold text-xs font-mono"
+              >
+                Пропустить
+              </button>
+            </header>
+            <h3 className="font-press-start text-xs font-black mb-2 uppercase text-wood leading-tight">
+              {ONBOARDING_STEPS[currentOnboardingStep].title}
+            </h3>
+            <p className="font-mono text-sm leading-relaxed mb-4 font-bold text-wood/80">
+              {ONBOARDING_STEPS[currentOnboardingStep].text}
+            </p>
+            <footer className="flex justify-between items-center gap-4">
+              <button
+                onClick={handlePrevOnboarding}
+                disabled={currentOnboardingStep === 0}
+                className={`retro-btn text-xs font-press-start font-black px-3 py-2 min-h-[38px] transition-all duration-100 ${
+                  currentOnboardingStep === 0 
+                    ? 'bg-sand-dark text-wood/30 cursor-not-allowed' 
+                    : 'bg-sand text-wood hover:scale-105 active:scale-95'
+                }`}
+              >
+                Назад
+              </button>
+              <button
+                onClick={handleNextOnboarding}
+                className="retro-btn bg-fox text-white text-[10px] font-press-start font-black px-4 py-2 min-h-[38px] flex-1 flex items-center justify-center gap-1 transition-all duration-100 hover:scale-105 active:scale-95"
+              >
+                {currentOnboardingStep === ONBOARDING_STEPS.length - 1 ? 'Начать работу' : 'Далее'}
+              </button>
+            </footer>
+          </div>
         </div>
       )}
     </div>
