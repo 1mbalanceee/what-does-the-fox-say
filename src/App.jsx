@@ -15,7 +15,8 @@ import {
   Sparkles,
   BookOpen,
   Check,
-  VolumeX
+  VolumeX,
+  Download
 } from 'lucide-react';
 
 const INITIAL_OBSERVATIONS = [
@@ -67,7 +68,7 @@ function PixelЙ() {
 }
 
 export default function App() {
-  // 1. Lazy State Initialization with localStorage persistence
+  // Lazy State Initialization with localStorage persistence
   const [observations, setObservations] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('fox_observations');
@@ -100,7 +101,7 @@ export default function App() {
   const [newSuspicionLevel, setNewSuspicionLevel] = useState(5);
   const [newTime, setNewTime] = useState('');
 
-  // 2. Synchronize observations state with localStorage
+  // Synchronize observations state with localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('fox_observations', JSON.stringify(observations));
@@ -322,6 +323,60 @@ export default function App() {
     }));
   };
 
+  // Formatted Text Exporter for Ranger Offline Reports
+  const handleExportReport = () => {
+    if (observations.length === 0) {
+      triggerToast('Нет данных для отчета');
+      return;
+    }
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ru-RU');
+    const timeStr = now.toTimeString().slice(0, 5);
+
+    let fileContent = `==================================================\n`;
+    fileContent += `    ОТЧЕТ СЛУЖБЫ ЛЕСНОГО МОНИТОРИНГА: ЛИСИЙ ДИСПЕТЧЕР\n`;
+    fileContent += `==================================================\n`;
+    fileContent += `Дата выгрузки: ${dateStr} ${timeStr}\n`;
+    fileContent += `Активный фильтр секторов: ${selectedLocation}\n`;
+    fileContent += `--------------------------------------------------\n`;
+    fileContent += `СВОДНЫЕ ПОКАЗАТЕЛИ:\n`;
+    fileContent += `- Всего зарегистрировано контактов: ${stats.totalObservations}\n`;
+    fileContent += `- Уникальных особей в базе: ${stats.totalUniqueFoxes}\n`;
+    fileContent += `- Максимальный уровень угрозы: ${stats.maxThreatLevel}\n`;
+    fileContent += `- Наиболее подозрительный субъект: ${stats.mostSuspiciousFox}\n`;
+    fileContent += `--------------------------------------------------\n`;
+    fileContent += `СПИСОК ЗАРЕГИСТРИРОВАННЫХ КОНТАКТОВ (${filteredObservations.length} зап.):\n`;
+    fileContent += `--------------------------------------------------\n`;
+    fileContent += `Время | ИД Лисы  | Окрас    | Добыча | Угроза | Локация\n`;
+    fileContent += `--------------------------------------------------\n`;
+    
+    filteredObservations.forEach(obs => {
+      const timePad = obs.time.padEnd(5, ' ');
+      const idPad = obs.fox_id.padEnd(8, ' ');
+      const colorPad = obs.color.padEnd(8, ' ');
+      const preyPad = (obs.has_prey ? 'Да (🍖)' : 'Нет').padEnd(6, ' ');
+      const threatPad = String(getRealThreatLevel(obs)).padEnd(6, ' ');
+      const locPad = obs.location;
+      fileContent += `${timePad} | ${idPad} | ${colorPad} | ${preyPad} | ${threatPad} | ${locPad}\n`;
+    });
+    
+    fileContent += `==================================================\n`;
+    fileContent += `Конец отчета. Сгенерировано автоматически.\n`;
+
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `report_fox_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    triggerToast('Отчет сохранен в файл');
+  };
+
   // Helper for threat progress bar color
   const getThreatColor = (level) => {
     if (level > 9) return 'bg-red-600';
@@ -525,7 +580,7 @@ export default function App() {
               <span>СГЕНЕРИРОВАТЬ ДЕНЬ (+20 лис)</span>
             </button>
 
-            {/* RESET CACHE AND DEMO DATA BUTTON */}
+            {/* RESET CACHE BUTTON */}
             <button
               id="btn-reset-cache"
               onClick={handleResetCache}
@@ -758,7 +813,7 @@ export default function App() {
 
         {/* 4. OBSERVATION LOG TABLE */}
         <section id="observations-section" className="retro-border bg-sand-light p-4 md:p-6">
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b-4 border-wood pb-4 mb-4">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b-4 border-wood pb-4 mb-4 font-mono">
             <div>
               <h2 className="text-lg md:text-xl font-press-start font-black text-wood uppercase">
                 📜 ЖУРНАЛ ПОЛЕВЫХ НАБЛЮДЕНИ<PixelЙ />
@@ -767,8 +822,22 @@ export default function App() {
                 Строки с Реальной угрозой &gt; 9 автоматически подсвечиваются красным.
               </p>
             </div>
-            <div className="font-mono text-sm text-wood/80 font-bold">
-              Показано записей: <span className="bg-wood text-sand-light px-2 py-0.5 font-bold retro-border-sm">{filteredObservations.length}</span> из {observations.length}
+            
+            {/* Flexbox alignment for data counter and download report button */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 font-mono text-sm w-full md:w-auto">
+              <div className="text-wood/80 font-bold text-center sm:text-right shrink-0">
+                Показано записей: <span className="bg-wood text-sand-light px-2 py-0.5 font-bold retro-border-sm">{filteredObservations.length}</span> из {observations.length}
+              </div>
+              
+              <button
+                id="btn-export-report"
+                onClick={handleExportReport}
+                className="retro-btn bg-forest hover:bg-forest-light text-sand-light font-press-start text-xs font-black min-h-[38px] px-4 py-2 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-105 active:scale-95"
+                title="Скачать текстовый отчет"
+              >
+                <Download size={14} />
+                <span>СКАЧАТЬ ОТЧЕТ</span>
+              </button>
             </div>
           </header>
 
