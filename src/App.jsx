@@ -480,12 +480,8 @@ export default function App() {
             </div>
           </div>
           <div className="flex flex-col items-end text-right font-mono bg-wood text-sand-light p-3 retro-border-sm w-full md:w-auto">
-            <div className="font-bold flex items-center gap-2 text-sm justify-end">
-              <Calendar size={14} className="text-fox-light" />
-              <span>02 ИЮЛЯ 2026</span>
-            </div>
             {/* Added a replay Help button alongside AI Worklog */}
-            <div className="flex gap-2 mt-2 w-full">
+            <div className="flex gap-2 w-full">
               <button
                 id="btn-open-worklog"
                 onClick={() => setShowWorklog(true)}
