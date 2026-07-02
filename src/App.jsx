@@ -121,8 +121,6 @@ export default function App() {
   const [isCustomFoxId, setIsCustomFoxId] = useState(false);
   const [customFoxIdText, setCustomFoxIdText] = useState('');
   const [newLocation, setNewLocation] = useState('Северная поляна');
-  const [isCustomLocation, setIsCustomLocation] = useState(false);
-  const [customLocationText, setCustomLocationText] = useState('');
   const [newColor, setNewColor] = useState('рыжая');
   const [newHasPrey, setNewHasPrey] = useState(false);
   const [newSuspicionLevel, setNewSuspicionLevel] = useState(5);
@@ -252,7 +250,7 @@ export default function App() {
     e.preventDefault();
     
     const finalFoxId = isCustomFoxId ? customFoxIdText.trim() : newFoxId;
-    const finalLocation = isCustomLocation ? customLocationText.trim() : newLocation;
+    const finalLocation = newLocation;
     
     if (!finalFoxId) {
       alert('Пожалуйста, введите ID лисы!');
@@ -284,7 +282,6 @@ export default function App() {
     
     // Reset form states
     setCustomFoxIdText('');
-    setCustomLocationText('');
     setNewTime('');
     setNewHasPrey(false);
     setNewSuspicionLevel(5);
@@ -452,13 +449,6 @@ export default function App() {
     setShowOnboarding(true);
   };
 
-  // Helper for threat progress bar color
-  const getThreatColor = (level) => {
-    if (level > 9) return 'bg-red-600';
-    if (level >= 6) return 'bg-fox';
-    return 'bg-forest';
-  };
-
   return (
     <div className="min-h-screen bg-sand p-4 md:p-8 flex flex-col items-center">
       <main id="app-container" className="w-full max-w-5xl flex flex-col gap-6">
@@ -470,7 +460,6 @@ export default function App() {
               <span className="text-4xl animate-bounce">🦊</span>
             </div>
             <div>
-              {/* FIXED CYRILLIC Й SPLITTING: Wrapped in whitespace-nowrap span to ensure letter Й never splits from preceding text */}
               <h1 id="main-title" className="text-2xl md:text-3xl font-press-start tracking-wider text-sand-light font-black uppercase text-shadow-sm">
                 <span className="whitespace-nowrap">ЛИСИ<PixelЙ /></span> ДИСПЕТЧЕР
               </h1>
@@ -776,55 +765,22 @@ export default function App() {
                 </div>
               </div>
 
-              {/* LOCATION */}
+              {/* PREDEFINED ONLY LOCATION SELECT */}
               <div className="flex flex-col gap-2">
-                <label className="text-wood">Локация / Сектор:</label>
-                <div className="flex flex-col gap-2">
-                  {!isCustomLocation ? (
-                    <div className="flex gap-2">
-                      <select
-                        id="form-location-select"
-                        value={newLocation}
-                        onChange={(e) => setNewLocation(e.target.value)}
-                        className="flex-1 bg-sand border-3 border-wood p-2 retro-border-sm min-h-[44px]"
-                      >
-                        <option value="Северная поляна">Северная поляна</option>
-                        <option value="Туманная тропа">Туманная тропа</option>
-                        <option value="Старый дуб">Старый дуб</option>
-                        <option value="Лисья нора">Лисья нора</option>
-                        <option value="Южный овраг">Южный овраг</option>
-                        <option value="Забытый пруд">Забытый пруд</option>
-                      </select>
-                      <button
-                        type="button"
-                        id="btn-location-custom"
-                        onClick={() => setIsCustomLocation(true)}
-                        className="retro-btn bg-wood text-sand-light px-3 py-1 font-bold text-sm min-h-[44px] transition-all duration-100 hover:scale-105"
-                      >
-                        Своя
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        id="form-location-custom"
-                        placeholder="Название локации"
-                        value={customLocationText}
-                        onChange={(e) => setCustomLocationText(e.target.value)}
-                        className="flex-1 bg-sand border-3 border-wood p-2 retro-border-sm min-h-[44px]"
-                      />
-                      <button
-                        type="button"
-                        id="btn-location-preset"
-                        onClick={() => setIsCustomLocation(false)}
-                        className="retro-btn bg-wood text-sand-light px-3 py-1 font-bold text-sm min-h-[44px] transition-all duration-100 hover:scale-105"
-                      >
-                        Выбрать
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <label htmlFor="form-location-select" className="text-wood">Локация / Сектор:</label>
+                <select
+                  id="form-location-select"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  className="w-full bg-sand border-3 border-wood p-2 retro-border-sm min-h-[44px]"
+                >
+                  <option value="Северная поляна">Северная поляна</option>
+                  <option value="Туманная тропа">Туманная тропа</option>
+                  <option value="Старый дуб">Старый дуб</option>
+                  <option value="Лисья нора">Лисья нора</option>
+                  <option value="Южный овраг">Южный овраг</option>
+                  <option value="Забытый пруд">Забытый пруд</option>
+                </select>
               </div>
 
               {/* COLOR */}
@@ -923,7 +879,6 @@ export default function App() {
         <section id="observations-section" className="retro-border bg-sand-light p-4 md:p-6 font-mono">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b-4 border-wood pb-4 mb-4 font-mono">
             <div>
-              {/* FIXED CYRILLIC Й WRAPPING: Wrapped in whitespace-nowrap span so that the word and the Й component never split lines */}
               <h2 className="text-lg md:text-xl font-press-start font-black text-wood uppercase">
                 📜 ЖУРНАЛ ПОЛЕВЫХ <span className="whitespace-nowrap">НАБЛЮДЕНИ<PixelЙ /></span>
               </h2>
