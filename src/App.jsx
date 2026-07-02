@@ -449,6 +449,13 @@ export default function App() {
     setShowOnboarding(true);
   };
 
+  // Helper for threat progress bar color
+  const getThreatColor = (level) => {
+    if (level > 9) return 'bg-red-600';
+    if (level >= 6) return 'bg-fox';
+    return 'bg-forest';
+  };
+
   return (
     <div className="min-h-screen bg-sand p-4 md:p-8 flex flex-col items-center">
       <main id="app-container" className="w-full max-w-5xl flex flex-col gap-6">
