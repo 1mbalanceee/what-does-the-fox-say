@@ -53,22 +53,26 @@ const ONBOARDING_STEPS = [
   {
     targetId: "interactive-map-section",
     title: "Карта секторов",
-    text: "Это интерактивная карта леса. Сектора темнеют, если в них замечено больше 2 лис. Кликните по сектору для фильтрации таблицы."
+    text: "Это интерактивная карта леса. Сектора темнеют, если в них замечено больше 2 лис. Кликните по сектору для фильтрации таблицы.",
+    mobilePosition: "top-4"
   },
   {
     targetId: "kpi-panel",
     title: "Панель показателей",
-    text: "Здесь отображаются ключевые метрики смены. Если уровень реальной угрозы превысит 9, панель предупредит о необходимости патрулирования."
+    text: "Здесь отображаются ключевые метрики смены. Если уровень реальной угрозы превысит 9, панель предупредит о необходимости патрулирования.",
+    mobilePosition: "bottom-4"
   },
   {
     targetId: "action-panel",
     title: "Панель управления",
-    text: "Отсюда можно сгенерировать 20 случайных событий для проверки, добавить новый контакт вручную или сбросить все данные к исходным."
+    text: "Отсюда можно сгенерировать 20 случайных событий для проверки, добавить новый контакт вручную или сбросить все данные к исходным.",
+    mobilePosition: "top-4"
   },
   {
     targetId: "btn-export-report",
     title: "Экспорт отчетов",
-    text: "Нажмите эту кнопку, чтобы выгрузить и скачать детальный текстовый отчет для Министерства Леса."
+    text: "Нажмите эту кнопку, чтобы выгрузить и скачать детальный текстовый отчет для Министерства Леса.",
+    mobilePosition: "top-4"
   }
 ];
 
@@ -1261,7 +1265,7 @@ export default function App() {
       {/* Onboarding Overlay Walkthrough Dialog */}
       {showOnboarding && (
         <div className="fixed inset-0 bg-wood/75 backdrop-blur-xs z-40 pointer-events-auto transition-all duration-300">
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-sand-light retro-border p-5 z-50 animate-fade-in text-wood">
+          <div className={`fixed left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-sand-light retro-border p-5 z-50 animate-fade-in text-wood md:top-auto md:bottom-6 ${ONBOARDING_STEPS[currentOnboardingStep].mobilePosition}`}>
             <header className="flex justify-between items-center border-b-2 border-wood pb-2 mb-3">
               <span className="font-press-start text-[10px] font-black text-fox uppercase">
                 Обучение ({currentOnboardingStep + 1} / {ONBOARDING_STEPS.length})
