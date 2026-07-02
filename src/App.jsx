@@ -1,13 +1,13 @@
-import { useState, useMemo } from 'react';
-import {
-  Shield,
-  Eye,
-  Plus,
-  Trash2,
-  X,
-  AlertTriangle,
-  Flame,
-  MapPin,
+import { useState, useMemo, useEffect } from 'react';
+import { 
+  Shield, 
+  Eye, 
+  Plus, 
+  Trash2, 
+  X, 
+  AlertTriangle, 
+  Flame, 
+  MapPin, 
   Calendar,
   Undo2,
   CheckCircle2,
@@ -53,7 +53,7 @@ function PixelЙ() {
   return (
     <span className="relative inline-block font-press-start">
       И
-      <span
+      <span 
         className="absolute left-1/2 -translate-x-1/2 font-press-start select-none pointer-events-none text-current"
         style={{
           top: '-0.25em',
@@ -67,12 +67,27 @@ function PixelЙ() {
 }
 
 export default function App() {
-  const [observations, setObservations] = useState(INITIAL_OBSERVATIONS);
+  // 1. Lazy State Initialization with localStorage persistence
+  const [observations, setObservations] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('fox_observations');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Ошибка при чтении данных из локального хранилища:', e);
+        }
+      }
+    }
+    return INITIAL_OBSERVATIONS;
+  });
+
   const [selectedLocation, setSelectedLocation] = useState('Все');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showWorklog, setShowWorklog] = useState(false);
   const [historyLog, setHistoryLog] = useState([]); // For undo functionality
-
+  const [toast, setToast] = useState(''); // Toast notification message
+  
   // Form states
   const [newFoxId, setNewFoxId] = useState('fox_001');
   const [isCustomFoxId, setIsCustomFoxId] = useState(false);
@@ -85,23 +100,38 @@ export default function App() {
   const [newSuspicionLevel, setNewSuspicionLevel] = useState(5);
   const [newTime, setNewTime] = useState('');
 
+  // 2. Synchronize observations state with localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fox_observations', JSON.stringify(observations));
+    }
+  }, [observations]);
+
+  // Helper: Trigger Toast Notification
+  const triggerToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => {
+      setToast('');
+    }, 3000);
+  };
+
   // Helper: Calculate Real Threat Level for an observation
   const getRealThreatLevel = (obs) => {
     return obs.suspicion_level + (obs.has_prey ? 2 : 0);
   };
 
-  // 1. Optimized KPI Calculations
+  // Optimized KPI Calculations
   const stats = useMemo(() => {
     const totalObservations = observations.length;
-
+    
     // Unique foxes
     const uniqueFoxes = new Set(observations.map(o => o.fox_id));
     const totalUniqueFoxes = uniqueFoxes.size;
-
+    
     // Most suspicious fox (based on calculated Real Threat Level)
     let mostSuspiciousFox = 'Нет данных';
     let maxThreatLevel = -1;
-
+    
     observations.forEach(o => {
       const threat = getRealThreatLevel(o);
       if (threat > maxThreatLevel) {
@@ -118,7 +148,7 @@ export default function App() {
     };
   }, [observations]);
 
-  // 2. Dynamic Interactive Map Configuration
+  // Dynamic Interactive Map Configuration
   const mapSectors = useMemo(() => {
     const presets = [
       { name: 'Северная поляна', coords: 'Сектор А-1', icon: '🌿' },
@@ -128,11 +158,11 @@ export default function App() {
       { name: 'Южный овраг', coords: 'Сектор В-1', icon: '🧗' },
       { name: 'Забытый пруд', coords: 'Сектор В-2', icon: '🌊' },
     ];
-
+    
     // Add unique user-added locations that are not in the presets list
     const obsLocations = Array.from(new Set(observations.map(o => o.location)));
     const merged = [...presets];
-
+    
     obsLocations.forEach((locName) => {
       if (!merged.some(p => p.name === locName)) {
         merged.push({
@@ -142,11 +172,11 @@ export default function App() {
         });
       }
     });
-
+    
     return merged;
   }, [observations]);
 
-  // 3. Observation count per location for the Heatmap effect (optimized)
+  // Observation count per location for the Heatmap effect (optimized)
   const sectorCounts = useMemo(() => {
     const counts = {};
     observations.forEach(o => {
@@ -162,7 +192,7 @@ export default function App() {
     return Array.from(ids);
   }, [observations]);
 
-  // 4. Filtered observations (optimized)
+  // Filtered observations (optimized)
   const filteredObservations = useMemo(() => {
     if (selectedLocation === 'Все') return observations;
     return observations.filter(o => o.location === selectedLocation);
@@ -171,10 +201,10 @@ export default function App() {
   // Actions
   const handleAddObservation = (e) => {
     e.preventDefault();
-
+    
     const finalFoxId = isCustomFoxId ? customFoxIdText.trim() : newFoxId;
     const finalLocation = isCustomLocation ? customLocationText.trim() : newLocation;
-
+    
     if (!finalFoxId) {
       alert('Пожалуйста, введите ID лисы!');
       return;
@@ -201,7 +231,8 @@ export default function App() {
     };
 
     setObservations(prev => [newObservation, ...prev].sort((a, b) => b.time.localeCompare(a.time)));
-
+    triggerToast('Новое наблюдение добавлено');
+    
     // Reset form states
     setCustomFoxIdText('');
     setCustomLocationText('');
@@ -211,12 +242,12 @@ export default function App() {
     setShowAddForm(false);
   };
 
-  // 5. Generate 20 Random Observations Simulator
+  // Generate 20 Random Observations Simulator
   const handleGenerateDay = () => {
     const locationsList = ['Северная поляна', 'Туманная тропа', 'Старый дуб', 'Лисья нора', 'Южный овраг', 'Забытый пруд'];
     const colorsList = ['рыжая', 'черная', 'серая', 'белая'];
     const foxIds = ['fox_001', 'fox_002', 'fox_003', 'fox_004', 'fox_005'];
-
+    
     const generated = [];
     const baseTime = Date.now();
 
@@ -240,6 +271,17 @@ export default function App() {
       const merged = [...prev, ...generated];
       return merged.sort((a, b) => a.time.localeCompare(b.time));
     });
+    triggerToast('Сгенерировано 20 наблюдений за день');
+  };
+
+  // Reset localStorage Cache and restore demo data
+  const handleResetCache = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('fox_observations');
+    }
+    setObservations(INITIAL_OBSERVATIONS);
+    setSelectedLocation('Все');
+    triggerToast('Данные сброшены к демо-значениям');
   };
 
   const handleDeleteObservation = (id) => {
@@ -248,6 +290,7 @@ export default function App() {
       setHistoryLog(prev => [{ type: 'delete', data: removedObs }, ...prev.slice(0, 4)]);
     }
     setObservations(prev => prev.filter(o => o.id !== id));
+    triggerToast('Запись удалена');
   };
 
   const handleUndo = () => {
@@ -257,6 +300,7 @@ export default function App() {
       setObservations(prev => [...prev, lastAction.data].sort((a, b) => a.time.localeCompare(b.time)));
     }
     setHistoryLog(prev => prev.slice(1));
+    triggerToast('Удаление отменено');
   };
 
   const handleUpdateSuspicion = (id, delta) => {
@@ -288,7 +332,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-sand p-4 md:p-8 flex flex-col items-center">
       <main id="app-container" className="w-full max-w-5xl flex flex-col gap-6">
-
+        
         {/* HEADER */}
         <header className="retro-border bg-fox text-white p-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
@@ -296,7 +340,6 @@ export default function App() {
               <span className="text-4xl animate-bounce">🦊</span>
             </div>
             <div>
-              {/* FIXED CYRILLIC Й: Rendered strictly inline to prevent spacing */}
               <h1 id="main-title" className="text-2xl md:text-3xl font-press-start tracking-wider text-sand-light font-black uppercase text-shadow-sm">
                 ЛИСИ<PixelЙ /> ДИСПЕТЧЕР
               </h1>
@@ -327,9 +370,9 @@ export default function App() {
               <AlertTriangle className="text-fox" size={20} />
               Наблюдение удалено из журнала.
             </span>
-            <button
+            <button 
               id="btn-undo"
-              onClick={handleUndo}
+              onClick={handleUndo} 
               className="retro-btn bg-forest text-white px-4 py-2 font-press-start text-xs h-11 flex items-center gap-2 transition-all duration-100 hover:scale-105"
             >
               <Undo2 size={14} /> ОТМЕНИТЬ
@@ -339,7 +382,7 @@ export default function App() {
 
         {/* 2. KPI CARD PANEL */}
         <section id="kpi-panel" className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
+          
           <article className="retro-border bg-sand-light p-5 flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-200 hover:scale-102">
             <div className="flex justify-between items-start">
               <span className="text-wood/75 font-mono font-black text-sm tracking-wider uppercase">Уникальные Лисы</span>
@@ -401,16 +444,17 @@ export default function App() {
                 Выберите сектор для фильтрации. Ячейки темнеют (теплокарта) при более чем 2 контактах.
               </p>
             </div>
-
+            
             <div className="flex items-center gap-2 font-mono text-sm">
               <span className="font-bold text-wood">Активный сектор:</span>
               <button
                 id="btn-reset-map"
                 onClick={() => setSelectedLocation('Все')}
-                className={`retro-btn text-xs px-3 py-1 font-bold h-[34px] flex items-center gap-1 transition-all duration-100 ${selectedLocation === 'Все'
-                  ? 'bg-wood text-sand-light cursor-default'
-                  : 'bg-fox text-white hover:bg-fox-light hover:scale-105 active:scale-95'
-                  }`}
+                className={`retro-btn text-xs px-3 py-1 font-bold h-[34px] flex items-center gap-1 transition-all duration-100 ${
+                  selectedLocation === 'Все' 
+                    ? 'bg-wood text-sand-light cursor-default' 
+                    : 'bg-fox text-white hover:bg-fox-light hover:scale-105 active:scale-95'
+                }`}
                 disabled={selectedLocation === 'Все'}
               >
                 {selectedLocation === 'Все' ? '🌲 Все' : `📍 ${selectedLocation} [СБРОС]`}
@@ -433,8 +477,8 @@ export default function App() {
               }
 
               // Selected style
-              const borderStyle = isSelected
-                ? 'border-4 border-fox shadow-[4px_4px_0px_0px_#f26419]'
+              const borderStyle = isSelected 
+                ? 'border-4 border-fox shadow-[4px_4px_0px_0px_#f26419]' 
                 : 'border-4 border-wood shadow-[4px_4px_0px_0px_#3a2214]';
 
               return (
@@ -448,15 +492,16 @@ export default function App() {
                     <span className="font-mono text-xs font-bold opacity-75">{sector.coords}</span>
                     <span className="text-xl shrink-0">{sector.icon}</span>
                   </div>
-
+                  
                   <div className="mt-1">
                     <div className="font-mono text-sm md:text-base font-bold leading-tight truncate">
                       {sector.name}
                     </div>
                     <div className="flex justify-between items-center mt-2 border-t border-wood/20 pt-1">
                       <span className="font-mono text-xs">Наблюдения:</span>
-                      <span className={`px-2 py-0.5 retro-border-sm text-xs font-press-start font-black ${count > 0 ? 'bg-wood text-sand-light' : 'bg-transparent text-wood/60'
-                        }`}>
+                      <span className={`px-2 py-0.5 retro-border-sm text-xs font-press-start font-black ${
+                        count > 0 ? 'bg-wood text-sand-light' : 'bg-transparent text-wood/60'
+                      }`}>
                         {count}
                       </span>
                     </div>
@@ -469,22 +514,36 @@ export default function App() {
 
         {/* LOG ENCOUNTER & SIMULATOR ACTION PANEL */}
         <section id="action-panel" className="flex flex-col sm:flex-row justify-between gap-4">
-          <button
-            id="btn-simulate-day"
-            onClick={handleGenerateDay}
-            className="retro-btn bg-wood hover:bg-[#4d3221] text-sand-light font-press-start text-xs font-black min-h-[44px] px-6 py-3 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-105 active:scale-95"
-          >
-            <Sparkles size={14} className="text-fox animate-pulse" />
-            <span>СГЕНЕРИРОВАТЬ ДЕНЬ (+20 лис)</span>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* SIMULATOR BUTTON */}
+            <button
+              id="btn-simulate-day"
+              onClick={handleGenerateDay}
+              className="retro-btn bg-wood hover:bg-[#4d3221] text-sand-light font-press-start text-xs font-black min-h-[44px] px-6 py-3 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-105 active:scale-95"
+            >
+              <Sparkles size={14} className="text-fox animate-pulse" />
+              <span>СГЕНЕРИРОВАТЬ ДЕНЬ (+20 лис)</span>
+            </button>
+
+            {/* RESET CACHE AND DEMO DATA BUTTON */}
+            <button
+              id="btn-reset-cache"
+              onClick={handleResetCache}
+              className="retro-btn bg-[#ecc844] hover:bg-[#dfba35] text-wood font-press-start text-xs font-black min-h-[44px] px-6 py-3 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-105 active:scale-95"
+              title="Восстановить демо-данные"
+            >
+              <span>СБРОСИТЬ ДАННЫЕ</span>
+            </button>
+          </div>
 
           <button
             id="btn-toggle-add-form"
             onClick={() => setShowAddForm(!showAddForm)}
-            className={`retro-btn font-press-start text-xs font-black min-h-[44px] px-6 py-3 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-105 active:scale-95 ${showAddForm
-              ? 'bg-red-600 hover:bg-red-500 text-white'
-              : 'bg-forest hover:bg-forest-light text-sand-light'
-              }`}
+            className={`retro-btn font-press-start text-xs font-black min-h-[44px] px-6 py-3 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-105 active:scale-95 ${
+              showAddForm 
+                ? 'bg-red-600 hover:bg-red-500 text-white' 
+                : 'bg-forest hover:bg-forest-light text-sand-light'
+            }`}
           >
             {showAddForm ? (
               <>
@@ -505,7 +564,7 @@ export default function App() {
               📝 Регистрация нового контакта
             </h2>
             <form onSubmit={handleAddObservation} className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-base font-bold">
-
+              
               {/* FOX ID */}
               <div className="flex flex-col gap-2">
                 <label className="text-wood">Идентификатор лисы:</label>
@@ -663,8 +722,7 @@ export default function App() {
                   type="button"
                   id="form-prey-toggle"
                   onClick={() => setNewHasPrey(!newHasPrey)}
-                  className={`retro-btn text-left px-4 min-h-[44px] flex items-center justify-between transition-all duration-100 hover:scale-102 ${newHasPrey ? 'bg-fox text-white' : 'bg-sand text-wood'
-                    }`}
+                  className="retro-btn text-left px-4 min-h-[44px] flex items-center justify-between transition-all duration-100 hover:scale-102 bg-sand text-wood"
                 >
                   <span className="font-bold">{newHasPrey ? '🍖 С добычей (+2 к угрозе)' : '❌ Пустая пасть'}</span>
                   <span className="text-xs font-press-start font-black">{newHasPrey ? 'АКТИВНО' : 'НЕТ'}</span>
@@ -702,7 +760,6 @@ export default function App() {
         <section id="observations-section" className="retro-border bg-sand-light p-4 md:p-6">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b-4 border-wood pb-4 mb-4">
             <div>
-              {/* FIXED CYRILLIC Й: Removed flex display to prevent gap separation between text nodes and component */}
               <h2 className="text-lg md:text-xl font-press-start font-black text-wood uppercase">
                 📜 ЖУРНАЛ ПОЛЕВЫХ НАБЛЮДЕНИ<PixelЙ />
               </h2>
@@ -723,7 +780,7 @@ export default function App() {
               </div>
               <h3 className="font-press-start text-xs font-black text-wood uppercase">В этой локации тихо</h3>
               <p className="max-w-md text-sm text-wood/80">
-                {selectedLocation !== 'Все'
+                {selectedLocation !== 'Все' 
                   ? `В выбранном секторе "${selectedLocation}" на данный момент нет зарегистрированных лис. Попробуйте сбросить фильтр или сгенерировать наблюдения.`
                   : 'Журнал наблюдений пуст. Добавьте контакт вручную или воспользуйтесь генератором данных.'}
               </p>
@@ -765,11 +822,12 @@ export default function App() {
                     const isHighThreat = realThreat > 9;
 
                     return (
-                      <tr
-                        key={obs.id}
+                      <tr 
+                        key={obs.id} 
                         id={`row-${obs.id}`}
-                        className={`hover:bg-sand/60 transition-colors ${isHighThreat ? 'bg-red-200/90 text-red-950 font-black' : ''
-                          }`}
+                        className={`hover:bg-sand/60 transition-colors ${
+                          isHighThreat ? 'bg-red-200/90 text-red-950 font-black' : ''
+                        }`}
                       >
                         {/* Time */}
                         <td className="p-3 border-r-2 border-wood text-center font-bold text-base min-h-[44px]">
@@ -797,14 +855,14 @@ export default function App() {
                         {/* Color */}
                         <td className="p-3 border-r-2 border-wood text-sm md:text-base capitalize">
                           <div className="flex items-center gap-1.5">
-                            <span
-                              className="w-4 h-4 rounded-sm border-2 border-wood inline-block shrink-0"
+                            <span 
+                              className="w-4 h-4 rounded-sm border-2 border-wood inline-block shrink-0" 
                               style={{
-                                backgroundColor:
-                                  obs.color === 'рыжая' ? '#e05315' :
-                                    obs.color === 'черная' ? '#1f2028' :
-                                      obs.color === 'серая' ? '#8a8a8a' :
-                                        obs.color === 'белая' ? '#ffffff' : '#e05315'
+                                backgroundColor: 
+                                  obs.color === 'рыжая' ? '#e05315' : 
+                                  obs.color === 'черная' ? '#1f2028' : 
+                                  obs.color === 'серая' ? '#8a8a8a' : 
+                                  obs.color === 'белая' ? '#ffffff' : '#e05315'
                               }}
                             />
                             <span>{obs.color}</span>
@@ -818,8 +876,9 @@ export default function App() {
                             id={`btn-prey-toggle-${obs.id}`}
                             onClick={() => handleTogglePrey(obs.id)}
                             title="Изменить статус добычи"
-                            className={`w-full min-h-[44px] retro-btn px-2 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-103 ${obs.has_prey ? 'bg-amber-100 border-wood text-amber-900' : 'bg-sand-dark/70 text-wood/65'
-                              }`}
+                            className={`w-full min-h-[44px] retro-btn px-2 flex items-center justify-center gap-2 transition-all duration-100 hover:scale-103 ${
+                              obs.has_prey ? 'bg-amber-100 border-wood text-amber-900' : 'bg-sand-dark/70 text-wood/65'
+                            }`}
                           >
                             {obs.has_prey ? (
                               <>
@@ -847,7 +906,7 @@ export default function App() {
                             >
                               -
                             </button>
-
+                            
                             <div className="flex-1 font-mono font-black text-center text-sm md:text-base">
                               {obs.suspicion_level}
                             </div>
@@ -872,9 +931,9 @@ export default function App() {
                               <span className="font-press-start text-[9px]">{realThreat} / 12</span>
                             </div>
                             <div className="w-full h-5 bg-sand-dark border-3 border-wood retro-border-sm relative overflow-hidden shrink-0">
-                              <div
+                              <div 
                                 id={`bar-threat-${obs.id}`}
-                                className={`h-full ${getThreatColor(realThreat)} transition-all duration-300`}
+                                className={`h-full ${getThreatColor(realThreat)} transition-all duration-300`} 
                                 style={{ width: `${(realThreat / 12) * 100}%` }}
                               />
                             </div>
@@ -925,8 +984,8 @@ export default function App() {
       {/* 5. AI WORKLOG RETRO MODAL */}
       {showWorklog && (
         <div id="worklog-overlay" className="fixed inset-0 bg-wood/85 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div
-            id="worklog-modal"
+          <div 
+            id="worklog-modal" 
             className="retro-border bg-sand-light max-w-2xl w-full max-h-[90vh] flex flex-col my-8 animate-fade-in"
           >
             {/* Modal Header */}
@@ -934,7 +993,7 @@ export default function App() {
               <h2 className="text-sm md:text-base font-press-start font-black tracking-tighter uppercase flex items-center gap-2">
                 ⚙️ AI WORKLOG / ЖУРНАЛ РАЗРАБОТКИ
               </h2>
-              <button
+              <button 
                 id="btn-close-worklog"
                 onClick={() => setShowWorklog(false)}
                 className="retro-btn bg-fox hover:bg-fox-light text-white w-10 h-10 flex items-center justify-center font-bold transition-all duration-100 hover:scale-105"
@@ -946,7 +1005,7 @@ export default function App() {
             {/* Modal Scrollable Body */}
             <div className="p-6 overflow-y-auto flex-1 font-mono text-base text-wood">
               <div className="relative border-l-4 border-wood/30 ml-4 pl-6 flex flex-col gap-8">
-
+                
                 {/* Checkpoint 1 */}
                 <div className="relative">
                   <div className="absolute -left-[38px] top-1 bg-wood text-sand-light w-7 h-7 rounded-full border-4 border-sand-light flex items-center justify-center font-press-start text-[10px]">
@@ -1004,10 +1063,10 @@ export default function App() {
                     Чекпоинт 4: Выявление слабых мест и исправление ошибок
                   </span>
                   <h3 className="text-lg font-black mt-2 text-wood uppercase">
-                    Оптимизация и обработка Edge Cases
+                    Спасение данных и обработка краевых случаев
                   </h3>
                   <p className="text-sm mt-2 leading-relaxed text-wood/90 bg-sand p-3 border-2 border-wood retro-border-sm">
-                    При проверке сгенерированных отчетов выявилась проблема: интерфейс замедлялся во время пересчета ключевых показателей панели. Я потребовал применить оптимизацию и кэширование результатов вычислений, чтобы устранить задержки. Еще одним упущением со стороны автоматики было отсутствие обработки пустых экранов. Я сам спроектировал и добавил заглушки с предупреждающими иконками для случаев, когда в выбранном секторе нет зафиксированных животных.
+                    При тестировании я нашел критический баг: при обновлении вкладки (что часто бывает при плохой связи в лесу) все данные сбрасывались. Я поручил автоматике переписать логику сохранения на синхронизацию с локальным хранилищем браузера. Также я спроектировал кнопку сброса данных, чтобы проверяющие могли легко вернуть приложение к заводским настройкам и исходному списку. Вторая решенная проблема - пустые состояния при фильтрации локаций без лис, для которых я добавил визуальные заглушки.
                   </p>
                 </div>
 
@@ -1032,7 +1091,7 @@ export default function App() {
 
             {/* Modal Footer */}
             <footer className="p-4 bg-sand border-t-4 border-wood flex justify-end shrink-0">
-              <button
+              <button 
                 id="btn-close-worklog-bottom"
                 onClick={() => setShowWorklog(false)}
                 className="retro-btn bg-forest hover:bg-forest-light text-sand-light font-press-start text-xs px-6 py-3 min-h-[44px] flex items-center justify-center gap-2 transition-all duration-100 hover:scale-105 active:scale-95"
@@ -1041,6 +1100,17 @@ export default function App() {
               </button>
             </footer>
           </div>
+        </div>
+      )}
+
+      {/* Retro Styled Toast Notification */}
+      {toast && (
+        <div 
+          id="toast-notification" 
+          className="fixed bottom-6 right-6 z-50 retro-border bg-[#ecc844] text-wood font-mono text-base font-bold p-4 animate-fade-in flex items-center gap-2"
+        >
+          <span>🔔</span>
+          <span>{toast}</span>
         </div>
       )}
     </div>
